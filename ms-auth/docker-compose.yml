@@ -1,0 +1,38 @@
+name: ms-auth
+services:
+  ms-auth:
+    profiles: ["app"]
+    build:
+      context: .
+    container_name: ms-auth
+    env_file: .env
+    ports:
+      - "${MS_AUTH_HTTP_PORT:-8082}:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATA_MONGODB_URI: mongodb://mongo-auth:27017/${MONGO_DB}
+    depends_on:
+      mongo-auth:
+        condition: service_healthy
+    networks:
+      - elearning-net
+
+  mongo-auth:
+    image: mongo:7
+    container_name: mongo-auth
+    volumes:
+      - ms-auth_mongodata:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ ping: 1 })"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    networks:
+      - elearning-net
+
+networks:
+  elearning-net:
+    external: true
+
+volumes:
+  ms-auth_mongodata:

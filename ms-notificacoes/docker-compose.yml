@@ -1,0 +1,38 @@
+name: ms-notificacoes
+services:
+  ms-notificacoes:
+    profiles: ["app"]
+    build:
+      context: .
+    container_name: ms-notificacoes
+    env_file: .env
+    ports:
+      - "${MS_NOTIFICACOES_HTTP_PORT:-8106}:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATA_MONGODB_URI: mongodb://mongo-notif:27017/${MONGO_DB}
+    depends_on:
+      mongo-notif:
+        condition: service_healthy
+    networks:
+      - elearning-net
+
+  mongo-notif:
+    image: mongo:7
+    container_name: mongo-notif
+    volumes:
+      - ms-notificacoes_mongodata:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ ping: 1 })"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    networks:
+      - elearning-net
+
+networks:
+  elearning-net:
+    external: true
+
+volumes:
+  ms-notificacoes_mongodata:

@@ -1,0 +1,41 @@
+name: ms-gamificacao
+services:
+  ms-gamificacao:
+    profiles: ["app"]
+    build:
+      context: .
+    container_name: ms-gamificacao
+    env_file: .env
+    ports:
+      - "${MS_GAMIFICACAO_HTTP_PORT:-8105}:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db-gamif:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      db-gamif:
+        condition: service_healthy
+    networks:
+      - elearning-net
+
+  db-gamif:
+    image: postgres:15
+    container_name: db-gamif
+    env_file: .env
+    volumes:
+      - ms-gamificacao_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    networks:
+      - elearning-net
+
+networks:
+  elearning-net:
+    external: true
+
+volumes:
+  ms-gamificacao_pgdata:
