@@ -3,19 +3,22 @@ services:
   ms-progresso:
     profiles: ["app"]
     build:
-      context: .
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: ms-progresso
     env_file: .env
     ports:
       - "${MS_PROGRESSO_HTTP_PORT:-8104}:8080"
     environment:
       SPRING_PROFILES_ACTIVE: docker
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db-progresso:5432/${POSTGRES_DB}
-      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db-progresso:5432/${POSTGRES_DB:-progresso}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-progresso}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-progresso}
     depends_on:
       db-progresso:
         condition: service_healthy
+      rabbitmq:
+        condition: service_started
     networks:
       - elearning-net
 
@@ -26,10 +29,23 @@ services:
     volumes:
       - ms-progresso_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-progresso} -d ${POSTGRES_DB:-progresso}"]
       interval: 10s
       timeout: 5s
       retries: 20
+    networks:
+      - elearning-net
+
+  rabbitmq:
+    image: rabbitmq:3.11-management
+    container_name: ms-progresso-rabbitmq
+    env_file: .env
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    ports:
+      - "15672:15672"
+      - "5672:5672"
     networks:
       - elearning-net
 
